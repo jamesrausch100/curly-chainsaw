@@ -2,34 +2,13 @@ package trust
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/jamesrausch100/curly-chainsaw/pkg/models"
 )
 
-func mockGateway() *httptest.Server {
-	scores := map[string]*Score{
-		"stripe.com":   {Entity: "stripe.com", Score: 92, Grade: GradeA, Trusted: true},
-		"ibm.com":      {Entity: "ibm.com", Score: 85, Grade: GradeA, Trusted: true},
-		"shadycorp.io": {Entity: "shadycorp.io", Score: 18, Grade: GradeF, Trusted: false},
-		"github.com/coffeelady": {Entity: "github.com/coffeelady", Score: 76, Grade: GradeB, Trusted: true},
-	}
-
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		entity := r.URL.Query().Get("entity")
-		s, ok := scores[entity]
-		if !ok {
-			s = &Score{Entity: entity, Score: 50, Grade: GradeC, Trusted: false}
-		}
-		json.NewEncoder(w).Encode(s)
-	}))
-}
-
 func TestEnrichJobs(t *testing.T) {
-	server := mockGateway()
+	server := mockDaaSTrustLayer()
 	defer server.Close()
 
 	client := NewClient(Config{GatewayURL: server.URL})
@@ -63,7 +42,7 @@ func TestEnrichJobs(t *testing.T) {
 }
 
 func TestEnrichMatches(t *testing.T) {
-	server := mockGateway()
+	server := mockDaaSTrustLayer()
 	defer server.Close()
 
 	client := NewClient(Config{GatewayURL: server.URL})

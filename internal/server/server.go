@@ -86,6 +86,8 @@ func (s *Server) routes() {
 	// Trust — Muster Protocol (DaaSTrustLayer).
 	s.mux.HandleFunc("/api/trust/verify", s.handleTrustVerify)
 	s.mux.HandleFunc("/api/trust/status", s.handleTrustStatus)
+	s.mux.HandleFunc("/api/trust/enroll", s.handleTrustEnroll)
+	s.mux.HandleFunc("/api/trust/chain", s.handleTrustChain)
 }
 
 // ServeHTTP implements http.Handler.
@@ -163,7 +165,18 @@ func (s *Server) handleProfile(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusCreated, map[string]string{"status": "saved", "id": profile.ID})
+
+		// Enroll in Muster Protocol — bring this person INTO the trust system.
+		enrolled := false
+		if s.trustClient != nil && len(profile.Links) > 0 {
+			enrolled = s.enrollProfile(r.Context(), &profile)
+		}
+
+		writeJSON(w, http.StatusCreated, map[string]interface{}{
+			"status":         "saved",
+			"id":             profile.ID,
+			"trust_enrolled": enrolled,
+		})
 
 	default:
 		w.Header().Set("Allow", "GET, POST")
@@ -351,6 +364,21 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 
 		s.store.SaveApplication(r.Context(), *app)
 		applied++
+
+		// Record outcome in Muster — feed application result into trust chain.
+		if s.trustClient != nil {
+			go s.trustClient.RecordOutcome(r.Context(), trust.Outcome{
+				EntityID: req.UserID,
+				Action:   "application_sent",
+				Target:   job.Company,
+				Success:  true,
+				Evidence: map[string]string{
+					"job_id":    job.ID,
+					"job_title": job.Title,
+					"platform":  string(job.Platform),
+				},
+			})
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -402,6 +430,52 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// enrollProfile registers a profile in the Muster Protocol.
+// Step 1: Claim the entity. Step 2: Submit evidence (links).
+// Step 3: Score them. This is how people enter the trust system.
+func (s *Server) enrollProfile(ctx context.Context, profile *models.Profile) bool {
+	// Find the primary identifier — prefer email, then first link.
+	identifier := profile.Email
+	if identifier == "" {
+		for _, link := range profile.Links {
+			if link != "" {
+				identifier = link
+				break
+			}
+		}
+	}
+	if identifier == "" {
+		return false
+	}
+
+	// Step 1: Register entity.
+	entity, err := s.trustClient.ClaimEntity(ctx, identifier, "person", map[string]string{
+		"name":     profile.Name,
+		"location": profile.Location,
+	})
+	if err != nil {
+		return false
+	}
+
+	// Step 2: Submit evidence — all links become scorable data.
+	if len(profile.Links) > 0 {
+		s.trustClient.SubmitEvidence(ctx, entity.ID, profile.Links, nil)
+	}
+
+	// Step 3: Score them.
+	score, err := s.trustClient.ScoreEntity(ctx, identifier)
+	if err != nil {
+		return false
+	}
+
+	// Write trust data back to the profile.
+	profile.TrustScore = score.Score
+	profile.TrustGrade = string(score.Grade)
+	profile.TrustProof = score.ProofHash
+
+	return true
+}
+
 func truncateMatches(matches []models.MatchResult, n int) []models.MatchResult {
 	if len(matches) <= n {
 		return matches
@@ -440,6 +514,81 @@ func (s *Server) handleTrustVerify(w http.ResponseWriter, r *http.Request) {
 		"action":    score.Grade.Action(),
 		"breakdown": score.Breakdown,
 		"proof":     score.ProofHash,
+	})
+}
+
+func (s *Server) handleTrustEnroll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "POST only")
+		return
+	}
+	if s.trustClient == nil {
+		writeError(w, http.StatusServiceUnavailable, "trust layer not configured")
+		return
+	}
+
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON")
+		return
+	}
+
+	profile, err := s.store.GetProfile(r.Context(), req.UserID)
+	if err != nil || profile == nil {
+		writeError(w, http.StatusNotFound, "profile not found")
+		return
+	}
+
+	if len(profile.Links) == 0 {
+		writeError(w, http.StatusBadRequest, "profile has no links — add github, linkedin, or portfolio first")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	enrolled := s.enrollProfile(ctx, profile)
+	if !enrolled {
+		writeError(w, http.StatusBadGateway, "enrollment failed — check Muster gateway")
+		return
+	}
+
+	// Re-save profile with trust data.
+	s.store.SaveProfile(r.Context(), *profile)
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"enrolled":    true,
+		"trust_score": profile.TrustScore,
+		"trust_grade": profile.TrustGrade,
+	})
+}
+
+func (s *Server) handleTrustChain(w http.ResponseWriter, r *http.Request) {
+	entityID := r.URL.Query().Get("entity_id")
+	if entityID == "" {
+		writeError(w, http.StatusBadRequest, "entity_id required")
+		return
+	}
+	if s.trustClient == nil {
+		writeError(w, http.StatusServiceUnavailable, "trust layer not configured")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	blocks, err := s.trustClient.GetChainHistory(ctx, entityID)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "chain history error: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"entity_id": entityID,
+		"blocks":    blocks,
+		"count":     len(blocks),
 	})
 }
 
