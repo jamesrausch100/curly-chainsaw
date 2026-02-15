@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curly Chainsaw</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --accent-green: #10b981;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f59e0b;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --border: #1f2937;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Titlebar — draggable on native, hidden on web */
+        .titlebar {
+            height: 32px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            -webkit-app-region: drag;
+            border-bottom: 1px solid var(--border);
+        }
+        .titlebar span { font-size: 12px; color: var(--text-muted); }
+
+        /* Layout */
+        .app { display: flex; height: calc(100vh - 32px); }
+        .sidebar {
+            width: 240px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 16px 0;
+        }
+        .main { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* Sidebar nav */
+        .nav-item {
+            padding: 10px 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+        }
+        .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+        .nav-item.active {
+            color: var(--accent-green);
+            border-left-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .logo { padding: 0 20px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+        .logo h2 { font-size: 16px; color: var(--accent-green); }
+        .logo p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        /* Stats grid */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .stat-card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+        .stat-card .value.green { color: var(--accent-green); }
+        .stat-card .value.cyan { color: var(--accent-cyan); }
+        .stat-card .value.orange { color: var(--accent-orange); }
+
+        /* Search bar */
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .search-bar input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+        .search-bar input:focus { border-color: var(--accent-green); }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-primary { background: var(--accent-green); color: #000; }
+        .btn-primary:hover { background: #059669; }
+        .btn-secondary { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-danger { background: var(--danger); color: #fff; }
+
+        /* Job cards */
+        .job-list { display: flex; flex-direction: column; gap: 12px; }
+        .job-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            transition: border-color 0.15s;
+        }
+        .job-card:hover { border-color: var(--accent-green); }
+        .job-header { display: flex; justify-content: space-between; align-items: start; }
+        .job-title { font-size: 16px; font-weight: 600; }
+        .job-company { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+        .job-meta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .badge-remote { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .badge-score { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+        .badge-platform { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
+
+        .match-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        /* Watch mode toggle */
+        .watch-toggle {
+            margin-top: auto;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+        }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+        .toggle-label { font-size: 13px; color: var(--text-secondary); }
+        .toggle {
+            width: 40px; height: 22px;
+            background: var(--border);
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle.on { background: var(--accent-green); }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            top: 2px; left: 2px;
+            transition: transform 0.2s;
+        }
+        .toggle.on::after { transform: translateX(18px); }
+
+        /* Profile panel */
+        .profile-section { margin-bottom: 24px; }
+        .profile-section h3 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .skill-tag { font-size: 12px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; color: var(--text-secondary); }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+        }
+        .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <span>Curly Chainsaw — Desktop</span>
+    </div>
+    <div class="app">
+        <div class="sidebar">
+            <div class="logo">
+                <h2>Curly Chainsaw</h2>
+                <p>chop down the hiring forest</p>
+            </div>
+            <div class="nav-item active" data-view="dashboard">Dashboard</div>
+            <div class="nav-item" data-view="search">Search Jobs</div>
+            <div class="nav-item" data-view="matches">Matches</div>
+            <div class="nav-item" data-view="applications">Applications</div>
+            <div class="nav-item" data-view="profile">Profile</div>
+            <div class="nav-item" data-view="settings">Settings</div>
+
+            <div class="watch-toggle">
+                <div class="toggle-row">
+                    <span class="toggle-label">Watch Mode</span>
+                    <div class="toggle" id="watchToggle"></div>
+                </div>
+            </div>
+        </div>
+        <div class="main" id="mainContent">
+            <!-- Dashboard view (default) -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="label">Discovered</div>
+                    <div class="value green" id="statDiscovered">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Matches</div>
+                    <div class="value cyan" id="statMatches">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Applied</div>
+                    <div class="value orange" id="statApplied">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Pending</div>
+                    <div class="value" id="statPending">0</div>
+                </div>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search for remote jobs... (e.g. automation engineer, python, devops)">
+                <button class="btn btn-primary" id="searchBtn">Search</button>
+                <button class="btn btn-secondary" id="discoverBtn">Auto-Discover</button>
+            </div>
+
+            <div class="job-list" id="jobList">
+                <div class="empty-state">
+                    <h3>Ready to chop</h3>
+                    <p>Search for jobs or hit Auto-Discover to let Curly find matches for you.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // In Wails, these calls go to the Go backend via: window.go.main.DesktopApp.Method()
+        // For standalone preview they use the REST API fallback.
+
+        const isWails = typeof window.go !== 'undefined';
+
+        async function apiCall(method, ...args) {
+            if (isWails) {
+                return window.go.main.DesktopApp[method](...args);
+            }
+            // REST API fallback for web preview.
+            const endpoints = {
+                'GetStats': '/api/stats',
+                'GetProfile': '/api/profile',
+                'Search': '/api/jobs/search?q=' + encodeURIComponent(args[0] || ''),
+                'Run': '/api/jobs/discover',
+            };
+            const url = endpoints[method];
+            if (!url) return null;
+            const resp = await fetch(url, { method: method === 'Run' ? 'POST' : 'GET' });
+            return resp.json();
+        }
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelector('.nav-item.active').classList.remove('active');
+                item.classList.add('active');
+            });
+        });
+
+        // Watch mode toggle
+        const watchToggle = document.getElementById('watchToggle');
+        watchToggle.addEventListener('click', () => {
+            watchToggle.classList.toggle('on');
+        });
+
+        // Search
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const q = document.getElementById('searchInput').value;
+            if (q) console.log('Search:', q);
+        });
+
+        // Discover
+        document.getElementById('discoverBtn').addEventListener('click', () => {
+            console.log('Auto-discover triggered');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Curly Chainsaw",
+    "slug": "curly-chainsaw",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0a0e17"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.curlychainsaw.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0e17"
+      },
+      "package": "com.curlychainsaw.app"
+    },
+    "plugins": [
+      "expo-notifications"
+    ]
+  }
+}

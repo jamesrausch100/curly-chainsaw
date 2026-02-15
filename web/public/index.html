@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curly Chainsaw — Chop Down the Hiring Forest</title>
+    <meta name="description" content="AI-powered job aggregator that discovers, matches, and applies to remote jobs across every platform while you sleep.">
+    <style>
+        :root {
+            --bg: #050a12;
+            --bg-section: #0a1020;
+            --card: #111d30;
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.2);
+            --cyan: #06b6d4;
+            --orange: #f59e0b;
+            --white: #f1f5f9;
+            --gray: #94a3b8;
+            --muted: #64748b;
+            --border: #1e293b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--white);
+            line-height: 1.6;
+        }
+
+        /* ─── NAV ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            padding: 16px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(5, 10, 18, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-logo { font-size: 18px; font-weight: 700; color: var(--green); }
+        .nav-links { display: flex; gap: 32px; }
+        .nav-links a { color: var(--gray); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--white); }
+        .nav-cta {
+            background: var(--green);
+            color: #000;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .nav-cta:hover { background: #059669; }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 160px 48px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 800;
+            line-height: 1.1;
+            max-width: 800px;
+            margin: 0 auto 24px;
+        }
+        .hero h1 .highlight { color: var(--green); }
+        .hero p {
+            font-size: 20px;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn-lg {
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-green:hover { background: #059669; transform: translateY(-1px); }
+        .btn-outline { background: transparent; color: var(--white); border: 1px solid var(--border); }
+        .btn-outline:hover { border-color: var(--green); }
+
+        /* ─── PLATFORMS ─── */
+        .platforms {
+            padding: 0 48px 80px;
+            text-align: center;
+        }
+        .platform-row {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .platform-chip {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        /* ─── FEATURES ─── */
+        .features {
+            padding: 100px 48px;
+            background: var(--bg-section);
+        }
+        .features h2 {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            transition: border-color 0.2s;
+        }
+        .feature-card:hover { border-color: var(--green); }
+        .feature-icon { font-size: 32px; margin-bottom: 16px; }
+        .feature-card h3 { font-size: 18px; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: var(--gray); line-height: 1.6; }
+
+        /* ─── HOW IT WORKS ─── */
+        .how-it-works {
+            padding: 100px 48px;
+        }
+        .how-it-works h2 { font-size: 36px; text-align: center; margin-bottom: 60px; }
+        .steps {
+            display: flex;
+            gap: 32px;
+            max-width: 1000px;
+            margin: 0 auto;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .step {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+        }
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--green);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            margin: 0 auto 16px;
+        }
+        .step h3 { font-size: 16px; margin-bottom: 8px; }
+        .step p { font-size: 14px; color: var(--gray); }
+
+        /* ─── CTA SECTION ─── */
+        .cta-section {
+            padding: 100px 48px;
+            text-align: center;
+            background: var(--bg-section);
+        }
+        .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+        .cta-section p { font-size: 18px; color: var(--gray); margin-bottom: 32px; }
+
+        /* ─── FOOTER ─── */
+        footer {
+            padding: 40px 48px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        footer a { color: var(--gray); text-decoration: none; }
+        footer a:hover { color: var(--green); }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 768px) {
+            nav { padding: 12px 24px; }
+            .nav-links { display: none; }
+            .hero { padding: 120px 24px 60px; }
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .features, .how-it-works, .cta-section { padding: 60px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV -->
+    <nav>
+        <div class="nav-logo">Curly Chainsaw</div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#platforms">Platforms</a>
+            <a href="/app">Dashboard</a>
+        </div>
+        <a href="/app" class="nav-cta">Open App</a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <h1>
+            <span class="highlight">Chop Down</span> the Hiring Forest While You Sleep
+        </h1>
+        <p>
+            AI-powered job discovery that searches every platform, matches your skills,
+            and applies to remote jobs around the clock. Any platform. Any product. Your tool.
+        </p>
+        <div class="hero-buttons">
+            <a href="/app" class="btn-lg btn-green">Get Started Free</a>
+            <a href="#how-it-works" class="btn-lg btn-outline">See How It Works</a>
+        </div>
+    </section>
+
+    <!-- PLATFORMS -->
+    <section class="platforms" id="platforms">
+        <div class="platform-row">
+            <div class="platform-chip">Greenhouse</div>
+            <div class="platform-chip">Ashby</div>
+            <div class="platform-chip">Workday</div>
+            <div class="platform-chip">Lever</div>
+            <div class="platform-chip">LinkedIn</div>
+            <div class="platform-chip">+ more coming</div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features" id="features">
+        <h2>Built for Remote Workers Who Want Out</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F50D;</div>
+                <h3>Multi-Platform Discovery</h3>
+                <p>Searches Greenhouse, Ashby, Workday, and more simultaneously. One search, every board.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F3AF;</div>
+                <h3>Intelligent Matching</h3>
+                <p>Scores jobs against your skills, title preferences, salary floor, and location. Only the good ones surface.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x26A1;</div>
+                <h3>Auto-Apply Engine</h3>
+                <p>Applies to high-match jobs automatically with safety guardrails, rate limits, and human review.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F512;</div>
+                <h3>Safety Guardrails</h3>
+                <p>Platform rate limits, company cooldowns, and a match-score floor keep you from getting flagged.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F4BB;</div>
+                <h3>Desktop + Web + Mobile</h3>
+                <p>Native apps for Windows and Mac, a web dashboard, and a mobile app. Curly runs wherever you do.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F319;</div>
+                <h3>Watch Mode</h3>
+                <p>Set it and forget it. Curly polls for new listings while you sleep and notifies you of top matches.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Load Your Profile</h3>
+                <p>Paste your resume or fill in skills, experience, and preferences. Curly parses it all.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Set Your Targets</h3>
+                <p>Choose job titles, salary floor, remote-only, and platforms. Configure once.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Curly Discovers</h3>
+                <p>Concurrent search across all ATS platforms. Deduplication, scoring, ranking.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Review or Auto-Apply</h3>
+                <p>Review matches yourself or let Curly apply to top hits. Safety limits prevent spam.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <h2>Stop Scrolling. Start Chopping.</h2>
+        <p>Curly Chainsaw is your force multiplier in the hiring forest.</p>
+        <a href="/app" class="btn-lg btn-green">Launch the App</a>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <span>Curly Chainsaw &copy; 2026</span>
+        <div style="display: flex; gap: 24px;">
+            <a href="#features">Features</a>
+            <a href="#platforms">Platforms</a>
+            <a href="/app">Dashboard</a>
+        </div>
+    </footer>
+</body>
+</html>
