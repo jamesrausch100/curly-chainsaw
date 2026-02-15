@@ -116,9 +116,11 @@ func (a *Agent) Run(ctx context.Context) RunResult {
 
 	// 3. Apply (if auto-apply is enabled) — with full safety guardrails.
 	if a.cfg.Agent.AutoApply {
-		remaining := a.applicant.DailyRemaining(a.cfg.Profile.ID)
-		a.logger.Info("Auto-applying (daily remaining: %d, min score: %.0f%%)...",
-			remaining, a.cfg.Agent.MinMatchScore*100)
+		remaining := a.applicant.DailyRemainingByPlatform(a.cfg.Profile.ID)
+		a.logger.Info("Auto-applying (min score: %.0f%%)...", a.cfg.Agent.MinMatchScore*100)
+		for platform, left := range remaining {
+			a.logger.Info("  %s: %d applications remaining today", platform, left)
+		}
 
 		applyResult := a.applicant.ApplyToMatches(ctx, matches, a.cfg.Profile, a.cfg.Profile.ID)
 

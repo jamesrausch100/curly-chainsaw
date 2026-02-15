@@ -9,20 +9,21 @@ import (
 )
 
 // Guardrails prevents users from getting flagged as spam applicants.
-// It enforces daily caps, per-company cooldowns, match score floors,
-// and requires human confirmation before submitting.
+// It enforces per-platform daily caps, per-company cooldowns, match score
+// floors, and requires human confirmation before submitting.
 type Guardrails struct {
 	cfg    GuardrailConfig
 	mu     sync.Mutex
-	daily  map[string]*dailyTracker  // user_id -> daily tracker
-	perCo  map[string]time.Time      // "user_id:company" -> last apply time
+	daily  map[string]*dailyTracker // "user_id:platform" -> daily tracker
+	perCo  map[string]time.Time     // "user_id:company" -> last apply time
 }
 
 // GuardrailConfig controls the safety thresholds.
 type GuardrailConfig struct {
-	// MaxApplyPerDay is the hard ceiling on applications per user per day.
-	// Even the most aggressive real human rarely applies to more than 20/day.
-	MaxApplyPerDay int `json:"max_apply_per_day"`
+	// MaxApplyPerPlatformPerDay is the ceiling per ATS platform per day.
+	// Each platform (Greenhouse, Ashby, Workday) tracks independently —
+	// Greenhouse doesn't know about your Ashby apps and vice versa.
+	MaxApplyPerPlatformPerDay int `json:"max_apply_per_platform_per_day"`
 
 	// MaxApplyPerCompanyPerWeek prevents spamming the same company.
 	MaxApplyPerCompanyPerWeek int `json:"max_apply_per_company_per_week"`
@@ -46,7 +47,7 @@ type GuardrailConfig struct {
 // DefaultGuardrailConfig returns conservative defaults.
 func DefaultGuardrailConfig() GuardrailConfig {
 	return GuardrailConfig{
-		MaxApplyPerDay:            15,
+		MaxApplyPerPlatformPerDay: 11,  // per platform, not global
 		MaxApplyPerCompanyPerWeek: 3,
 		CompanyCooldownHours:      48,
 		MinMatchScore:             0.6,
@@ -82,12 +83,12 @@ func (v Violation) Error() string {
 type ViolationCode string
 
 const (
-	ViolationDailyLimit     ViolationCode = "DAILY_LIMIT"
-	ViolationCompanyCooldown ViolationCode = "COMPANY_COOLDOWN"
-	ViolationLowScore       ViolationCode = "LOW_MATCH_SCORE"
-	ViolationNeedsReview    ViolationCode = "NEEDS_HUMAN_REVIEW"
-	ViolationPendingFull    ViolationCode = "PENDING_QUEUE_FULL"
-	ViolationDuplicate      ViolationCode = "DUPLICATE_APPLICATION"
+	ViolationPlatformDailyLimit ViolationCode = "PLATFORM_DAILY_LIMIT"
+	ViolationCompanyCooldown    ViolationCode = "COMPANY_COOLDOWN"
+	ViolationLowScore           ViolationCode = "LOW_MATCH_SCORE"
+	ViolationNeedsReview        ViolationCode = "NEEDS_HUMAN_REVIEW"
+	ViolationPendingFull        ViolationCode = "PENDING_QUEUE_FULL"
+	ViolationDuplicate          ViolationCode = "DUPLICATE_APPLICATION"
 )
 
 // CheckApplication validates whether an application should proceed.
@@ -115,20 +116,22 @@ func (g *Guardrails) CheckApplication(userID string, job models.Job, matchScore 
 		}
 	}
 
-	// 3. Daily limit — no one should be applying to 50 jobs a day.
+	// 3. Per-platform daily limit — each ATS is independent.
+	// Greenhouse has no idea what you did on Ashby, so we track separately.
 	today := time.Now().Format("2006-01-02")
-	tracker, ok := g.daily[userID]
+	platformKey := fmt.Sprintf("%s:%s", userID, job.Platform)
+	tracker, ok := g.daily[platformKey]
 	if !ok || tracker.resetDate != today {
 		tracker = &dailyTracker{count: 0, resetDate: today}
-		g.daily[userID] = tracker
+		g.daily[platformKey] = tracker
 	}
 
-	if tracker.count >= g.cfg.MaxApplyPerDay {
+	if tracker.count >= g.cfg.MaxApplyPerPlatformPerDay {
 		return &Violation{
-			Code: ViolationDailyLimit,
+			Code: ViolationPlatformDailyLimit,
 			Message: fmt.Sprintf(
-				"Daily application limit reached (%d/%d). Spreading applications across days looks more natural to recruiters.",
-				tracker.count, g.cfg.MaxApplyPerDay,
+				"%s daily limit reached (%d/%d). Spreading applications across days looks more natural to recruiters.",
+				job.Platform, tracker.count, g.cfg.MaxApplyPerPlatformPerDay,
 			),
 		}
 	}
@@ -168,18 +171,19 @@ func (g *Guardrails) CheckApplication(userID string, job models.Job, matchScore 
 	return nil // all clear
 }
 
-// RecordApplication marks that a user applied to a job at a company.
+// RecordApplication marks that a user applied to a job on a platform.
 // Call this AFTER a successful application.
-func (g *Guardrails) RecordApplication(userID string, company string) {
+func (g *Guardrails) RecordApplication(userID string, company string, platform models.Platform) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	// Increment daily count.
+	// Increment per-platform daily count.
 	today := time.Now().Format("2006-01-02")
-	tracker, ok := g.daily[userID]
+	platformKey := fmt.Sprintf("%s:%s", userID, platform)
+	tracker, ok := g.daily[platformKey]
 	if !ok || tracker.resetDate != today {
 		tracker = &dailyTracker{count: 0, resetDate: today}
-		g.daily[userID] = tracker
+		g.daily[platformKey] = tracker
 	}
 	tracker.count++
 
@@ -188,19 +192,29 @@ func (g *Guardrails) RecordApplication(userID string, company string) {
 	g.perCo[companyKey] = time.Now()
 }
 
-// DailyRemaining returns how many applications a user has left today.
-func (g *Guardrails) DailyRemaining(userID string) int {
+// DailyRemainingByPlatform returns how many applications a user has left
+// today on each platform.
+func (g *Guardrails) DailyRemainingByPlatform(userID string) map[models.Platform]int {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	today := time.Now().Format("2006-01-02")
-	tracker, ok := g.daily[userID]
-	if !ok || tracker.resetDate != today {
-		return g.cfg.MaxApplyPerDay
+	platforms := []models.Platform{models.PlatformAshby, models.PlatformGreenhouse, models.PlatformWorkday}
+	remaining := make(map[models.Platform]int, len(platforms))
+
+	for _, p := range platforms {
+		key := fmt.Sprintf("%s:%s", userID, p)
+		tracker, ok := g.daily[key]
+		if !ok || tracker.resetDate != today {
+			remaining[p] = g.cfg.MaxApplyPerPlatformPerDay
+		} else {
+			r := g.cfg.MaxApplyPerPlatformPerDay - tracker.count
+			if r < 0 {
+				r = 0
+			}
+			remaining[p] = r
+		}
 	}
-	remaining := g.cfg.MaxApplyPerDay - tracker.count
-	if remaining < 0 {
-		return 0
-	}
+
 	return remaining
 }

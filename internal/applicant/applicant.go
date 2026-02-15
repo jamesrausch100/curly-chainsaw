@@ -177,7 +177,7 @@ func (e *Engine) ApplyToMatches(ctx context.Context, matches []models.MatchResul
 		app.MatchScore = match.Score
 
 		// Record with guardrails and internal tracking.
-		e.guardrails.RecordApplication(userID, match.Job.Company)
+		e.guardrails.RecordApplication(userID, match.Job.Company, match.Job.Platform)
 		e.mu.Lock()
 		e.applied[match.Job.ID] = true
 		e.applications[app.ID] = app
@@ -233,7 +233,7 @@ func (e *Engine) ConfirmPending(ctx context.Context, pendingID string, profile m
 	}
 
 	submitted.MatchScore = app.MatchScore
-	e.guardrails.RecordApplication(app.ProfileID, job.Company)
+	e.guardrails.RecordApplication(app.ProfileID, job.Company, app.Platform)
 
 	e.mu.Lock()
 	e.applied[app.JobID] = true
@@ -287,9 +287,10 @@ func (e *Engine) AllApplications() []models.Application {
 	return apps
 }
 
-// DailyRemaining returns how many applications a user has left today.
-func (e *Engine) DailyRemaining(userID string) int {
-	return e.guardrails.DailyRemaining(userID)
+// DailyRemainingByPlatform returns how many applications a user has left
+// today on each platform.
+func (e *Engine) DailyRemainingByPlatform(userID string) map[models.Platform]int {
+	return e.guardrails.DailyRemainingByPlatform(userID)
 }
 
 // Stats returns summary statistics.
