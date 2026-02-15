@@ -165,6 +165,15 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   );
 }
 
+function trustGradeColor(grade?: string): string {
+  switch (grade) {
+    case 'A': return colors.green;
+    case 'B': return colors.cyan;
+    case 'C': return colors.orange;
+    default:  return '#ef4444';
+  }
+}
+
 function JobCard({ job, score, reason }: { job: Job; score?: number; reason?: string }) {
   return (
     <View style={styles.jobCard}>
@@ -178,6 +187,12 @@ function JobCard({ job, score, reason }: { job: Job; score?: number; reason?: st
       <View style={styles.badgeRow}>
         {job.remote && <Badge text="REMOTE" color={colors.green} />}
         {job.platform && <Badge text={job.platform} color={colors.orange} />}
+        {job.company_trust_grade && (
+          <Badge
+            text={`TRUST ${job.company_trust_grade} (${job.company_trust_score})`}
+            color={trustGradeColor(job.company_trust_grade)}
+          />
+        )}
         {reason && <Badge text={reason} color={colors.cyan} />}
       </View>
     </View>

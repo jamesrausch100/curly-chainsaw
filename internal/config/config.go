@@ -17,6 +17,24 @@ type Config struct {
 	Platforms  PlatformConfigs      `json:"platforms"`
 	Agent      AgentConfig          `json:"agent"`
 	Safety     safety.GuardrailConfig `json:"safety"`
+	Trust      TrustConfig          `json:"trust"`
+}
+
+// TrustConfig holds settings for the Muster Protocol (DaaSTrustLayer) integration.
+type TrustConfig struct {
+	Enabled    bool   `json:"enabled"`               // whether to score entities via Muster
+	GatewayURL string `json:"gateway_url,omitempty"`  // DaaSTrustLayer Go gateway address
+	APIKey     string `json:"api_key,omitempty"`      // API key for the gateway
+	TimeoutSec int    `json:"timeout_sec,omitempty"`  // request timeout
+}
+
+// DefaultTrustConfig returns trust config pointing to a local Muster gateway.
+func DefaultTrustConfig() TrustConfig {
+	return TrustConfig{
+		Enabled:    false,
+		GatewayURL: "http://localhost:8081",
+		TimeoutSec: 10,
+	}
 }
 
 // PlatformConfigs holds per-platform configuration.

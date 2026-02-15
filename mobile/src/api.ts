@@ -18,12 +18,31 @@ interface Job {
   url: string;
   salary?: { min: number; max: number; currency: string; period: string };
   tags?: string[];
+  company_trust_score?: number; // 0-100 from Muster Protocol
+  company_trust_grade?: string; // A-F
 }
 
 interface MatchResult {
   job: Job;
   score: number;
   reason: string;
+  company_trusted?: boolean;   // employer verified by Muster
+  candidate_trusted?: boolean; // candidate proved via Muster
+}
+
+interface TrustScore {
+  entity: string;
+  score: number;
+  grade: string;
+  trusted: boolean;
+  action: string;
+  breakdown: {
+    existence_age: number;
+    security_integrity: number;
+    reputation_scale: number;
+    operational_maturity: number;
+  };
+  proof?: string;
 }
 
 interface Stats {
@@ -68,6 +87,10 @@ export const api = {
   discover:   ()       => post<{ matches: MatchResult[] }>('/api/jobs/discover', {}),
   apply:      (ids: string[]) => post<{ applied: number }>('/api/apply', { job_ids: ids }),
   saveProfile: (p: Profile) => post<Profile>('/api/profile', p),
+
+  // Trust — Muster Protocol (DaaSTrustLayer)
+  trustVerify: (entity: string) => get<TrustScore>(`/api/trust/verify?entity=${encodeURIComponent(entity)}`),
+  trustStatus: () => get<{ enabled: boolean; gateway_reachable?: boolean }>('/api/trust/status'),
 };
 
-export type { Job, MatchResult, Stats, Profile };
+export type { Job, MatchResult, Stats, Profile, TrustScore };

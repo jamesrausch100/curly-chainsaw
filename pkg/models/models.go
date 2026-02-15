@@ -32,6 +32,11 @@ type Job struct {
 	Benefits      []string          `json:"benefits,omitempty"`
 	Metadata      map[string]string `json:"metadata,omitempty"`
 	ApplicationID string            `json:"application_id,omitempty"`
+
+	// Trust — populated by the Muster Protocol (DaaSTrustLayer).
+	// Scores the company behind this listing: is the employer legit?
+	CompanyTrustScore int    `json:"company_trust_score,omitempty"` // 0-100
+	CompanyTrustGrade string `json:"company_trust_grade,omitempty"` // A-F
 }
 
 // SalaryRange represents compensation information.
@@ -57,6 +62,12 @@ type Profile struct {
 	Education      []Education     `json:"education"`
 	Preferences    JobPreferences  `json:"preferences"`
 	Links          map[string]string `json:"links,omitempty"` // linkedin, github, portfolio, etc.
+
+	// Trust — populated by the Muster Protocol (DaaSTrustLayer).
+	// Proves real capabilities beyond resume keywords.
+	TrustScore int    `json:"trust_score,omitempty"` // 0-100
+	TrustGrade string `json:"trust_grade,omitempty"` // A-F
+	TrustProof string `json:"trust_proof,omitempty"` // SHA-256 chain proof from Muster
 }
 
 // Experience represents a work experience entry.
@@ -115,6 +126,10 @@ type MatchResult struct {
 	Job    Job     `json:"job"`
 	Score  float64 `json:"score"`  // 0.0 - 1.0
 	Reason string  `json:"reason"` // why this job matched
+
+	// Trust — when Muster is available, both sides are scored.
+	CompanyTrusted   bool `json:"company_trusted,omitempty"`   // employer passed verification
+	CandidateTrusted bool `json:"candidate_trusted,omitempty"` // candidate proved capabilities
 }
 
 // SearchQuery represents a job search request.

@@ -1,7 +1,7 @@
-# Compiled binaries
-desktop
-curly
-server
+# Compiled binaries (root-level only)
+/desktop
+/curly
+/server
 *.exe
 *.app
 
