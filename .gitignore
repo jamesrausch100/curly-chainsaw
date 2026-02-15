@@ -1,0 +1,24 @@
+# Compiled binaries
+desktop
+curly
+server
+*.exe
+*.app
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Node (mobile/web)
+node_modules/
+mobile/.expo/
+web/dist/
+
+# Environment
+.env
+.env.local
