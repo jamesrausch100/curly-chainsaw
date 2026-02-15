@@ -1,0 +1,146 @@
+{
+  "profile": {
+    "id": "james_rausch",
+    "name": "James Nicholas Rausch",
+    "email": "JamesRausch100@gmail.com",
+    "phone": "(505) 529-9669",
+    "location": "Denver, Colorado",
+    "remote_only": false,
+    "resume_file": "",
+    "skills": [
+      "Python",
+      "C#",
+      "C++",
+      "JavaScript",
+      "SQL",
+      "React",
+      "Selenium",
+      "AWS",
+      "Hadoop",
+      "Spark",
+      "Maven",
+      "Git",
+      "GitLab",
+      "DNS",
+      "PfSense",
+      "Microsoft SQL Server",
+      "SharePoint",
+      "PowerBI",
+      "Excel",
+      "Prompt Engineering",
+      "Test Automation",
+      "Manufacturing Systems Integration",
+      "Workflow Automation",
+      "Project Management",
+      "Digital Twin Infrastructure",
+      "KPI Management",
+      "ISO 9001"
+    ],
+    "experience": [
+      {
+        "company": "Market2Agent.com",
+        "title": "Design Architect & Systems Lead",
+        "start_date": "Jan 2026",
+        "description": "Leading end-to-end architecture of AI agent discovery platform; multi-model LLM orchestration pipelines; GEO audit systems for AI visibility and positioning"
+      },
+      {
+        "company": "TSMC",
+        "title": "Intelligent Manufacturing Engineer",
+        "start_date": "Sept 2024",
+        "end_date": "July 2025",
+        "description": "Reduced SOP deployment cycle time by 50%; 4D digital twin infrastructure planning; improved automated running-hold workflows by 20%+ exceeding Taiwan benchmarks"
+      },
+      {
+        "company": "Intel Corporation",
+        "title": "Manufacturing Systems & Automation Intern",
+        "start_date": "Jan 2023",
+        "end_date": "May 2024",
+        "description": "Built React web app for work-content reduction; 400+ Python/Selenium test cases; migrated DOMA metrology toolkit from C++ to C#"
+      },
+      {
+        "company": "CodaKid Corporation",
+        "title": "K-8 Computer Science Tutor",
+        "start_date": "Oct 2021",
+        "end_date": "Jan 2023",
+        "description": "One-on-one and small-group CS tutoring; JavaScript web dev, Minecraft mods, Roblox Lua plugins, Python game development"
+      }
+    ],
+    "education": [
+      {
+        "institution": "Arizona State University",
+        "degree": "Bachelor of Science",
+        "field": "Computer Science (Cybersecurity)",
+        "end_date": "May 2024"
+      }
+    ],
+    "preferences": {
+      "titles": [
+        "Operations Manager",
+        "Automation Engineer",
+        "Test Engineer",
+        "Process Engineer",
+        "Manufacturing Engineer",
+        "Systems Engineer",
+        "Software Engineer",
+        "DevOps Engineer",
+        "Platform Engineer",
+        "QA Engineer"
+      ],
+      "min_salary": 90000,
+      "max_commute_mi": 0,
+      "industries": [
+        "technology",
+        "semiconductor",
+        "manufacturing",
+        "AI",
+        "SaaS"
+      ],
+      "company_sizes": [
+        "startup",
+        "mid",
+        "enterprise"
+      ]
+    },
+    "links": {
+      "email": "JamesRausch100@gmail.com"
+    }
+  },
+  "platforms": {
+    "ashby": {
+      "enabled": true,
+      "board_tokens": []
+    },
+    "greenhouse": {
+      "enabled": true,
+      "board_tokens": []
+    },
+    "workday": {
+      "enabled": true,
+      "tenants": []
+    }
+  },
+  "agent": {
+    "min_match_score": 0.6,
+    "max_apply_per_run": 10,
+    "search_keywords": [
+      "automation engineer",
+      "operations engineer",
+      "test engineer",
+      "manufacturing engineer",
+      "systems engineer",
+      "software engineer python",
+      "process engineer",
+      "DevOps engineer"
+    ],
+    "auto_apply": false,
+    "polling_interval_s": 300
+  },
+  "safety": {
+    "max_apply_per_platform_per_day": 11,
+    "max_apply_per_company_per_week": 3,
+    "company_cooldown_hours": 48,
+    "min_match_score": 0.6,
+    "require_confirmation": true,
+    "max_pending_review": 25
+  }
+}
