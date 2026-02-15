@@ -5,7 +5,7 @@
     "email": "JamesRausch100@gmail.com",
     "phone": "(505) 529-9669",
     "location": "Denver, Colorado",
-    "remote_only": false,
+    "remote_only": true,
     "resume_file": "",
     "skills": [
       "Python",
@@ -123,14 +123,14 @@
     "min_match_score": 0.6,
     "max_apply_per_run": 10,
     "search_keywords": [
-      "automation engineer",
-      "operations engineer",
-      "test engineer",
-      "manufacturing engineer",
-      "systems engineer",
-      "software engineer python",
-      "process engineer",
-      "DevOps engineer"
+      "remote automation engineer",
+      "remote operations engineer",
+      "remote test engineer",
+      "remote manufacturing engineer",
+      "remote systems engineer",
+      "remote software engineer python",
+      "remote process engineer",
+      "remote DevOps engineer"
     ],
     "auto_apply": false,
     "polling_interval_s": 300
