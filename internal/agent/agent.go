@@ -56,10 +56,13 @@ type RunResult struct {
 	NewJobs      int
 	Matched      int
 	Applied      int
+	Pending      int // awaiting human review
+	Blocked      int // blocked by guardrails
 	Skipped      int
 	Failed       int
 	TopMatches   []models.MatchResult
 	Errors       []string
+	Warnings     []string
 	Duration     time.Duration
 }
 
@@ -111,22 +114,36 @@ func (a *Agent) Run(ctx context.Context) RunResult {
 
 	a.logger.Info("Found %d matches (top score: %.2f)", result.Matched, topScore(matches))
 
-	// 3. Apply (if auto-apply is enabled).
+	// 3. Apply (if auto-apply is enabled) — with full safety guardrails.
 	if a.cfg.Agent.AutoApply {
-		a.logger.Info("Auto-applying to top matches (min score: %.2f)...", a.cfg.Agent.MinMatchScore)
+		remaining := a.applicant.DailyRemaining(a.cfg.Profile.ID)
+		a.logger.Info("Auto-applying (daily remaining: %d, min score: %.0f%%)...",
+			remaining, a.cfg.Agent.MinMatchScore*100)
 
-		applyResult := a.applicant.ApplyToMatches(ctx, matches, a.cfg.Profile, a.cfg.Agent.MinMatchScore)
+		applyResult := a.applicant.ApplyToMatches(ctx, matches, a.cfg.Profile, a.cfg.Profile.ID)
 
 		result.Applied = len(applyResult.Applied)
+		result.Pending = len(applyResult.Pending)
+		result.Blocked = len(applyResult.Blocked)
 		result.Skipped = len(applyResult.Skipped)
 		result.Failed = len(applyResult.Failed)
+
+		for _, b := range applyResult.Blocked {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("[%s] %s at %s: %s", b.Violation.Code, b.Job.Title, b.Job.Company, b.Violation.Message))
+		}
+
+		for _, p := range applyResult.Pending {
+			a.logger.Info("Pending review: %s at %s (%.0f%% match)", p.Job.Title, p.Job.Company, p.MatchScore*100)
+		}
 
 		for _, f := range applyResult.Failed {
 			result.Errors = append(result.Errors, fmt.Sprintf("apply failed for %s at %s: %s", f.Job.Title, f.Job.Company, f.Err))
 			a.logger.Error("Failed to apply: %s at %s — %s", f.Job.Title, f.Job.Company, f.Err)
 		}
 
-		a.logger.Info("Applied: %d | Skipped: %d | Failed: %d", result.Applied, result.Skipped, result.Failed)
+		a.logger.Info("Applied: %d | Pending: %d | Blocked: %d | Skipped: %d | Failed: %d",
+			result.Applied, result.Pending, result.Blocked, result.Skipped, result.Failed)
 	} else {
 		a.logger.Info("Auto-apply disabled. Use --apply to enable.")
 	}
@@ -174,6 +191,8 @@ func printRunSummary(r RunResult) {
 	fmt.Printf("  Discovered: %d jobs (%d new)\n", r.Discovered, r.NewJobs)
 	fmt.Printf("  Matched:    %d\n", r.Matched)
 	fmt.Printf("  Applied:    %d\n", r.Applied)
+	fmt.Printf("  Pending:    %d (awaiting review)\n", r.Pending)
+	fmt.Printf("  Blocked:    %d (guardrails)\n", r.Blocked)
 	fmt.Printf("  Skipped:    %d\n", r.Skipped)
 	fmt.Printf("  Failed:     %d\n", r.Failed)
 	fmt.Println("========================================")
@@ -185,11 +204,18 @@ func printRunSummary(r RunResult) {
 				fmt.Printf("  ... and %d more\n", len(r.TopMatches)-10)
 				break
 			}
-			emoji := "  "
+			marker := "  "
 			if m.Score >= 0.8 {
-				emoji = "* "
+				marker = "* "
 			}
-			fmt.Printf("  %s[%.0f%%] %s @ %s — %s\n", emoji, m.Score*100, m.Job.Title, m.Job.Company, m.Reason)
+			fmt.Printf("  %s[%.0f%%] %s @ %s — %s\n", marker, m.Score*100, m.Job.Title, m.Job.Company, m.Reason)
+		}
+	}
+
+	if len(r.Warnings) > 0 {
+		fmt.Printf("\nGuardrails (%d):\n", len(r.Warnings))
+		for _, w := range r.Warnings {
+			fmt.Printf("  - %s\n", w)
 		}
 	}
 

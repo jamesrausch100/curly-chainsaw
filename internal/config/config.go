@@ -7,14 +7,16 @@ import (
 	"path/filepath"
 
 	"github.com/jamesrausch100/curly-chainsaw/internal/ats/workday"
+	"github.com/jamesrausch100/curly-chainsaw/internal/safety"
 	"github.com/jamesrausch100/curly-chainsaw/pkg/models"
 )
 
 // Config holds all application configuration.
 type Config struct {
-	Profile    models.Profile   `json:"profile"`
-	Platforms  PlatformConfigs  `json:"platforms"`
-	Agent      AgentConfig      `json:"agent"`
+	Profile    models.Profile       `json:"profile"`
+	Platforms  PlatformConfigs      `json:"platforms"`
+	Agent      AgentConfig          `json:"agent"`
+	Safety     safety.GuardrailConfig `json:"safety"`
 }
 
 // PlatformConfigs holds per-platform configuration.
@@ -61,6 +63,7 @@ func DefaultConfig() Config {
 			AutoApply:        false, // safe default: discover only
 			PollingIntervalS: 300,   // 5 minutes
 		},
+		Safety: safety.DefaultGuardrailConfig(),
 	}
 }
 
@@ -158,6 +161,7 @@ func GenerateExample(path string) error {
 			AutoApply:        false,
 			PollingIntervalS: 300,
 		},
+		Safety: safety.DefaultGuardrailConfig(),
 	}
 
 	return Save(&cfg, path)
